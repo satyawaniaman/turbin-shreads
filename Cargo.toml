@@ -1,0 +1,61 @@
+[package]
+name = "shredstream-decoder-example"
+version = "0.1.0"
+edition = "2021"
+description = "Decode raw Solana turbine shreds into DEX-specific transaction data"
+
+[dependencies]
+tokio = { version = "1.50", features = ["full"] }
+solana-sdk = "2.2"
+reed-solomon-erasure = "6.0.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+bincode = "1.3"
+bs58 = "0.5.1"
+base64 = "0.22.1"
+clap = { version = "4.5", features = ["derive"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", features = ["json", "env-filter"] }
+anyhow = "1.0"
+chrono = { version = "0.4.44", features = ["serde"] }
+strum = { version = "0.26", features = ["derive"] }
+
+[[example]]
+name = "listen_and_decode"
+path = "examples/listen_and_decode.rs"
+
+[[example]]
+name = "shred_to_json"
+path = "examples/shred_to_json.rs"
+
+[[example]]
+name = "pumpfun_new_tokens"
+path = "examples/pumpfun_new_tokens.rs"
+
+[[example]]
+name = "pumpfun_trades"
+path = "examples/pumpfun_trades.rs"
+
+[[example]]
+name = "jupiter_swaps"
+path = "examples/jupiter_swaps.rs"
+
+[[example]]
+name = "jupiter_whale_swaps"
+path = "examples/jupiter_whale_swaps.rs"
+
+[[example]]
+name = "raydium_new_pools"
+path = "examples/raydium_new_pools.rs"
+
+[[example]]
+name = "raydium_swaps"
+path = "examples/raydium_swaps.rs"
+
+[[example]]
+name = "token_transfers"
+path = "examples/token_transfers.rs"
+
+[[example]]
+name = "token_mints"
+path = "examples/token_mints.rs"
