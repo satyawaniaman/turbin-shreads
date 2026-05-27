@@ -1,0 +1,200 @@
+pub mod udp_listener;
+
+use crate::decoder::DecoderRegistry;
+use crate::entry::deserialize_entries;
+use crate::fec::{FecTracker, IngestResult};
+use crate::shred::{parse_shred, ParsedShred};
+use crate::types::{DecodedInstruction, Dex, InstructionKind, ShredInfo};
+use std::collections::HashSet;
+use udp_listener::UdpShredListener;
+
+pub type ShredCallback = Box<dyn Fn(&ParsedShred) + Send + Sync>;
+pub type InstructionCallback = Box<dyn Fn(&DecodedInstruction) + Send + Sync>;
+
+pub struct ShredPipeline {
+    bind_addr: String,
+    decoder_registry: DecoderRegistry,
+    fec_tracker: FecTracker,
+    dex_filter: Option<Vec<Dex>>,
+    kind_filter: Option<Vec<InstructionKind>>,
+    on_shred: Option<ShredCallback>,
+    on_instruction: Option<InstructionCallback>,
+    seen_sigs: HashSet<String>,
+    seen_sigs_slot: u64,
+}
+
+impl ShredPipeline {
+    pub fn new(bind_addr: String) -> Self {
+        Self {
+            bind_addr,
+            decoder_registry: DecoderRegistry::new(),
+            fec_tracker: FecTracker::new(100),
+            dex_filter: None,
+            kind_filter: None,
+            on_shred: None,
+            on_instruction: None,
+            seen_sigs: HashSet::new(),
+            seen_sigs_slot: 0,
+        }
+    }
+
+    pub fn with_dex_filter(mut self, dexes: Vec<Dex>) -> Self {
+        self.dex_filter = Some(dexes);
+        self
+    }
+
+    pub fn with_kind_filter(mut self, kinds: Vec<InstructionKind>) -> Self {
+        self.kind_filter = Some(kinds);
+        self
+    }
+
+    pub fn on_shred(mut self, cb: ShredCallback) -> Self {
+        self.on_shred = Some(cb);
+        self
+    }
+
+    pub fn on_instruction(mut self, cb: InstructionCallback) -> Self {
+        self.on_instruction = Some(cb);
+        self
+    }
+
+    fn decode_entries(&mut self, slot: u64, data: &[u8]) -> Vec<DecodedInstruction> {
+        let entries = deserialize_entries(data);
+        if entries.is_empty() {
+            return Vec::new();
+        }
+
+        let tx_count: usize = entries.iter().map(|e| e.transactions.len()).sum();
+        tracing::debug!(
+            slot,
+            entry_count = entries.len(),
+            tx_count,
+            "Deserialized entries"
+        );
+
+        let mut results = Vec::new();
+        for entry in &entries {
+            for tx in &entry.transactions {
+                if tx.signatures.is_empty() {
+                    continue;
+                }
+                let signature = bs58::encode(&tx.signatures[0]).into_string();
+                let accounts = tx.message.static_account_keys();
+
+                let instructions: Vec<(u8, Vec<u8>, Vec<u8>)> = tx
+                    .message
+                    .instructions()
+                    .iter()
+                    .map(|ix| (ix.program_id_index, ix.accounts.clone(), ix.data.clone()))
+                    .collect();
+
+                results.extend(self.decoder_registry.decode_transaction(
+                    accounts,
+                    &instructions,
+                    &signature,
+                    slot,
+                ));
+            }
+        }
+        results
+    }
+
+    fn matches_filters(&self, inst: &DecodedInstruction) -> bool {
+        if let Some(ref f) = self.dex_filter {
+            if !f.contains(&inst.dex) {
+                return false;
+            }
+        }
+        if let Some(ref f) = self.kind_filter {
+            if !f.contains(&inst.kind) {
+                return false;
+            }
+        }
+        true
+    }
+
+    pub async fn run(&mut self) -> anyhow::Result<()> {
+        let listener = UdpShredListener::bind(&self.bind_addr).await?;
+        tracing::info!(bind = %self.bind_addr, "ShredPipeline started");
+
+        let mut shred_count: u64 = 0;
+        let mut instruction_count: u64 = 0;
+
+        loop {
+            let raw = listener.recv().await?;
+            shred_count += 1;
+
+            tracing::debug!(shred_count, len = raw.len(), "Received UDP packet");
+
+            let Some(parsed) = parse_shred(&raw) else {
+                tracing::debug!(shred_count, "Failed to parse shred");
+                continue;
+            };
+
+            tracing::debug!(
+                slot = parsed.slot(), index = parsed.index(),
+                is_data = parsed.is_data(), fec_set = parsed.fec_set_index(),
+                variant = ?parsed.common().variant,
+                "Parsed shred"
+            );
+
+            if let Some(cb) = &self.on_shred {
+                cb(&parsed);
+            }
+
+            let (slot, data) = match self.fec_tracker.ingest(&parsed) {
+                IngestResult::Pending => continue,
+                IngestResult::SlotComplete(c) => (c.slot, c.data),
+                IngestResult::FirstFecSet { slot, data } => (slot, data),
+            };
+
+            // Clear dedup set when we move to a new slot
+            if slot != self.seen_sigs_slot {
+                self.seen_sigs.clear();
+                self.seen_sigs_slot = slot;
+            }
+
+            for inst in self.decode_entries(slot, &data) {
+                if !self.matches_filters(&inst) {
+                    continue;
+                }
+                if !self.seen_sigs.insert(inst.signature.clone()) {
+                    continue; // already emitted
+                }
+
+                instruction_count += 1;
+                if let Some(cb) = &self.on_instruction {
+                    cb(&inst);
+                }
+            }
+
+            if shred_count.is_multiple_of(10_000) {
+                tracing::info!(
+                    shreds = shred_count,
+                    instructions = instruction_count,
+                    active_fec_sets = self.fec_tracker.active_sets(),
+                    active_slots = self.fec_tracker.active_slots(),
+                    "Pipeline stats"
+                );
+            }
+        }
+    }
+
+    pub fn process_raw(&mut self, raw: &[u8]) -> Vec<DecodedInstruction> {
+        let Some(parsed) = parse_shred(raw) else {
+            return Vec::new();
+        };
+
+        let (slot, data) = match self.fec_tracker.ingest(&parsed) {
+            IngestResult::SlotComplete(c) => (c.slot, c.data),
+            IngestResult::FirstFecSet { slot, data } => (slot, data),
+            IngestResult::Pending => return Vec::new(),
+        };
+
+        self.decode_entries(slot, &data)
+    }
+
+    pub fn parse_shred_info(raw: &[u8]) -> Option<ShredInfo> {
+        parse_shred(raw).map(|s| s.info())
+    }
+}
