@@ -22,7 +22,7 @@ export function Header({
         <div className="flex items-center gap-2">
           <Zap className="size-5 text-accent-orange" />
           <h1 className="font-display text-lg font-medium tracking-tight text-ink md:text-xl">
-            Turbine Shred Decoder
+            Turbine Solana Event Decoder
           </h1>
         </div>
       </div>
