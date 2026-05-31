@@ -22,40 +22,40 @@ strum = { version = "0.26", features = ["derive"] }
 
 [[example]]
 name = "listen_and_decode"
-path = "examples/listen_and_decode.rs"
+path = "scripts/listen_and_decode.rs"
 
 [[example]]
 name = "shred_to_json"
-path = "examples/shred_to_json.rs"
+path = "scripts/shred_to_json.rs"
 
 [[example]]
 name = "pumpfun_new_tokens"
-path = "examples/pumpfun_new_tokens.rs"
+path = "scripts/pumpfun_new_tokens.rs"
 
 [[example]]
 name = "pumpfun_trades"
-path = "examples/pumpfun_trades.rs"
+path = "scripts/pumpfun_trades.rs"
 
 [[example]]
 name = "jupiter_swaps"
-path = "examples/jupiter_swaps.rs"
+path = "scripts/jupiter_swaps.rs"
 
 [[example]]
 name = "jupiter_whale_swaps"
-path = "examples/jupiter_whale_swaps.rs"
+path = "scripts/jupiter_whale_swaps.rs"
 
 [[example]]
 name = "raydium_new_pools"
-path = "examples/raydium_new_pools.rs"
+path = "scripts/raydium_new_pools.rs"
 
 [[example]]
 name = "raydium_swaps"
-path = "examples/raydium_swaps.rs"
+path = "scripts/raydium_swaps.rs"
 
 [[example]]
 name = "token_transfers"
-path = "examples/token_transfers.rs"
+path = "scripts/token_transfers.rs"
 
 [[example]]
 name = "token_mints"
-path = "examples/token_mints.rs"
+path = "scripts/token_mints.rs"

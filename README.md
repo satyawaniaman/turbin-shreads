@@ -169,7 +169,7 @@ src/fec/                             Reed-Solomon recovery and slot accumulation
 src/entry/                           Solana entry deserialization
 src/decoder/                         Program-specific instruction decoders
 src/types.rs                         Shared decoded event types
-examples/                            Focused examples for each supported strategy
+scripts/                             Focused examples for each supported strategy
 web/src/app/page.tsx                 Dashboard page (main UI)
 web/src/app/api/events/route.ts      Live Helius RPC data route
 web/src/app/layout.tsx               Root layout with fonts and metadata
