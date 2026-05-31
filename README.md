@@ -128,9 +128,11 @@ cargo run -- --dex pumpfun --kind buy,sell
 cargo run -- --dex jupiter_v6 --format json
 ```
 
-## Example Programs
+## Included Scripts
 
-Run focused examples with:
+Run the focused decoding scripts with:
+
+*(Note: Cargo uses the `--example` flag to run binaries located in the `scripts/` target folder)*
 
 ```bash
 cargo run --example listen_and_decode
