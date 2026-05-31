@@ -4,16 +4,12 @@ import { Pause, Play, Code2, Zap } from "lucide-react";
 
 interface HeaderProps {
   isStreaming: boolean;
-  streamSpeed: number;
   onToggleStreaming: () => void;
-  onSetStreamSpeed: (ms: number) => void;
 }
 
 export function Header({
   isStreaming,
-  streamSpeed,
   onToggleStreaming,
-  onSetStreamSpeed,
 }: HeaderProps) {
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-hairline px-4 md:px-6">
@@ -49,19 +45,6 @@ export function Header({
 
       {/* ── Right: Controls ── */}
       <div className="flex items-center gap-2">
-        {/* Speed selector */}
-        <select
-          value={streamSpeed}
-          onChange={(e) => onSetStreamSpeed(Number(e.target.value))}
-          className="hidden h-8 rounded-lg border border-hairline-strong bg-surface-card px-2 text-xs text-charcoal outline-none transition-colors focus:border-ink sm:block"
-          aria-label="Stream speed"
-        >
-          <option value={2000}>Real-time (2s)</option>
-          <option value={5000}>Fast (5s)</option>
-          <option value={10000}>Normal (10s)</option>
-          <option value={30000}>Slow (30s)</option>
-        </select>
-
         {/* Play/Pause */}
         <button
           onClick={onToggleStreaming}

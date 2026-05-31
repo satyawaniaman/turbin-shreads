@@ -18,7 +18,6 @@ export interface DashboardState {
   protocolFilter: Protocol | "all";
   kindFilter: InstructionKind | "all";
   isStreaming: boolean;
-  streamSpeed: number;
   error: string | null;
   lastUpdated: number | null;
   source: string;
@@ -30,7 +29,6 @@ export interface DashboardState {
   totalEvents: number;
   eventsPerSecond: number;
   latestSlot: number;
-  fecRecovered: number;
   avgLatency: number;
   protocolCounts: Record<Protocol, number>;
 
@@ -40,7 +38,6 @@ export interface DashboardState {
   setKindFilter: (k: InstructionKind | "all") => void;
   setSelectedEvent: (e: DecodedEvent | null) => void;
   toggleStreaming: () => void;
-  setStreamSpeed: (ms: number) => void;
   setPerPage: (n: number) => void;
   setCurrentPage: (p: number) => void;
   clearEvents: () => void;
@@ -54,7 +51,6 @@ export function useDashboard(): DashboardState {
   const [protocolFilter, setProtocolFilterState] = useState<Protocol | "all">("all");
   const [kindFilter, setKindFilterState] = useState<InstructionKind | "all">("all");
   const [isStreaming, setIsStreaming] = useState(true);
-  const [streamSpeed, setStreamSpeed] = useState(2000);
   const [eventsPerSecond, setEventsPerSecond] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
@@ -107,11 +103,6 @@ export function useDashboard(): DashboardState {
 
   const latestSlot = useMemo(
     () => (events.length > 0 ? Math.max(...events.map((e) => e.slot)) : 0),
-    [events]
-  );
-
-  const fecRecovered = useMemo(
-    () => events.filter((e) => e.fecStatus === "recovered").length,
     [events]
   );
 
@@ -175,13 +166,13 @@ export function useDashboard(): DashboardState {
     };
 
     load();
-    const interval = setInterval(load, streamSpeed);
+    const interval = setInterval(load, 2000);
 
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [fetchLiveEvents, isStreaming, streamSpeed]);
+  }, [fetchLiveEvents, isStreaming]);
 
   // ── EPS calculation ──
   useEffect(() => {
@@ -284,7 +275,6 @@ export function useDashboard(): DashboardState {
     protocolFilter,
     kindFilter,
     isStreaming,
-    streamSpeed,
     error,
     lastUpdated,
     source,
@@ -294,7 +284,6 @@ export function useDashboard(): DashboardState {
     totalEvents,
     eventsPerSecond,
     latestSlot,
-    fecRecovered,
     avgLatency,
     protocolCounts,
     setSearchQuery,
@@ -302,7 +291,6 @@ export function useDashboard(): DashboardState {
     setKindFilter,
     setSelectedEvent,
     toggleStreaming,
-    setStreamSpeed,
     setPerPage: updatePerPage,
     setCurrentPage,
     clearEvents,

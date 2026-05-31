@@ -15,9 +15,7 @@ export default function Home() {
     <div className="flex h-screen flex-col bg-canvas">
       <Header
         isStreaming={dashboard.isStreaming}
-        streamSpeed={dashboard.streamSpeed}
         onToggleStreaming={dashboard.toggleStreaming}
-        onSetStreamSpeed={dashboard.setStreamSpeed}
       />
 
       <div className="flex flex-1 overflow-hidden">
