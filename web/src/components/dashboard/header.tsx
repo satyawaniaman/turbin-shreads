@@ -22,12 +22,9 @@ export function Header({
         <div className="flex items-center gap-2">
           <Zap className="size-5 text-accent-orange" />
           <h1 className="font-display text-lg font-medium tracking-tight text-ink md:text-xl">
-            ShredStream
+            Turbine Shred Decoder
           </h1>
         </div>
-        <span className="hidden text-xs text-mute-text sm:inline">
-          Turbine Shred Decoder
-        </span>
       </div>
 
       {/* ── Center: Status ── */}
