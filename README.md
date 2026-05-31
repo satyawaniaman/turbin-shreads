@@ -1,80 +1,204 @@
-# Turbine Shred Decoder
+# Turbine Real-Time Solana Decoder
 
-Decode raw Solana turbine shreds into readable transaction-level events for Pump.fun, Jupiter, Raydium, and SPL Token activity.
+A high-performance Rust-powered real-time Solana analytics platform that streams, decodes, and visualizes DeFi activity from Pump.fun, Jupiter, Raydium, and SPL Token programs.
 
-This project is a high-performance Rust decoder engine plus a Vercel-ready Next.js dashboard. 
+## Architecture Overview
+
+```text
+┌──────────────────────────────────────────────┐
+│              Solana Mainnet                  │
+└───────────────────┬──────────────────────────┘
+                    │
+                    │ logsSubscribe (WebSocket)
+                    ▼
+┌──────────────────────────────────────────────┐
+│         Rust Decoder Engine (DigitalOcean)   │
+│                                              │
+│  • WebSocket Client                          │
+│  • Transaction Fetcher                       │
+│  • Protocol Decoders                         │
+│  • Event Processing Pipeline                 │
+│  • In-Memory Event Queue                     │
+└───────────────────┬──────────────────────────┘
+                    │
+                    │ GET /api/events
+                    ▼
+┌──────────────────────────────────────────────┐
+│             Axum HTTP API (:8002)            │
+└───────────────────┬──────────────────────────┘
+                    │
+                    │ Polling
+                    ▼
+┌──────────────────────────────────────────────┐
+│         Next.js Dashboard (Vercel)           │
+│                                              │
+│  • Live Event Feed                           │
+│  • Protocol Analytics                        │
+│  • Event Inspector                           │
+│  • Search & Filters                          │
+│  • CSV Export                                │
+└──────────────────────────────────────────────┘
+```
+
+## Data Flow
+
+```text
+Solana Transaction
+        ↓
+WebSocket Notification
+        ↓
+Fetch Full Transaction
+        ↓
+Custom Rust Decoder
+        ↓
+Structured Event
+        ↓
+Axum API
+        ↓
+Next.js Dashboard
+```
 
 ## What This Project Does
 
-Solana validators split block data into small network packets called shreds. This project reconstructs transaction entries from those shreds and decodes selected program instructions into structured events.
+This project monitors live Solana activity and converts raw blockchain transactions into human-readable events.
 
-Supported decoders:
+Supported Protocols:
 
-- Pump.fun token creation and trades
-- Jupiter v6 swaps
-- Raydium AMM and CPMM swaps/pool initialization
-- SPL Token transfers, checked transfers, mints, and burns
+- Pump.fun
+- Jupiter v6
+- Raydium AMM
+- Raydium CPMM
+- SPL Token Program
 
-Core pipeline:
+The Rust backend continuously listens to Solana transaction logs, fetches matching transactions, decodes protocol-specific instructions, and exposes them through a low-latency HTTP API consumed by the dashboard.
 
-1. Connect to the Solana network.
-2. Fetch raw transactions and payload.
-3. Match known program IDs and decode instruction data.
-4. Serve the decoded structured events to a real-time dashboard.
+## Key Engineering Components
 
-## Why It Matters
+### Rust Decoder Engine
 
-Most Solana applications consume finalized RPC data. This project works closer to the network layer, which can surface activity earlier and provides a practical view of Solana's data propagation, transaction encoding, and high-throughput design.
+The backend is responsible for:
 
-## Dashboard
+- Maintaining a persistent WebSocket connection to Solana
+- Monitoring selected protocol program IDs
+- Fetching full transaction data
+- Decoding protocol-specific instructions
+- Calculating metadata such as latency and transaction details
+- Storing recent events in an in-memory queue
+- Serving decoded events through an Axum API
 
-The frontend dashboard lives in `web/`. It shows decoded events in a polished, dark-themed interface inspired by developer-tool aesthetics.
+### Axum API Layer
 
-### Dashboard Features
+The backend exposes:
 
-- **Metric Cards** — Total events, latest slot, average decode latency
-- **Protocol Breakdown** — Visual breakdown of events by protocol (Pump.fun, Jupiter, Raydium AMM/CPMM, SPL Token) with clickable filters
-- **Events Table** — Sortable table showing decoded events with protocol badges, monospace addresses, copy buttons, and Solana Explorer links
-- **Event Inspector** — Click any row to open a detailed side panel showing all decoded fields
-- **Search & Filters** — Search by signature, mint, or authority; filter by protocol and instruction kind
-- **CSV Export** — Export filtered events to CSV for analysis
-- **Solana Explorer Links** — Direct links to view transactions and addresses on Solana Explorer
+```http
+GET /api/events
+```
 
-### Live Data Source & Architecture
+which returns a stream of recently decoded blockchain activity.
 
-This project is built as a tightly-coupled pipeline that streams data in real-time from the blockchain to the frontend:
+```json
+{
+  "events": [
+    {
+      "instruction": {
+        "dex": "PumpFun",
+        "kind": "Buy",
+        "signature": "...",
+        "slot": 423403682,
+        "mint": "...",
+        "input_amount": 510050001,
+        "output_amount": 4036362905078,
+        "authority": "..."
+      },
+      "timestamp": 1716300000000,
+      "fec_status": "complete",
+      "decode_latency_ms": 45
+    }
+  ]
+}
+```
 
-1. **Rust WebSocket Engine (`serve_api`)**: A high-performance Rust backend connects to the Solana network via WebSockets (`wss://`). It subscribes to `logsSubscribe` for 5 specific DeFi programs. When a transaction occurs, it fetches the raw transaction, decodes it using a custom `DecoderRegistry`, and buffers the events in an in-memory queue. It serves this live data via an Axum HTTP API.
-2. **Next.js Dashboard**: A fast, dark-themed UI that constantly polls the Rust Axum API for real-time events. It visualizes trade volumes, active protocols, and recent transactions with smooth micro-animations.
+### Next.js Dashboard
 
-**Graceful Fallback**: If the Rust backend goes offline, the Next.js API automatically falls back to fetching data directly from the Helius REST API. This ensures the dashboard *never* appears broken!
+The frontend visualizes live protocol activity through:
+
+- Real-time transaction feed
+- Protocol breakdown charts
+- Event inspector panel
+- Search and filtering
+- Solana Explorer integration
+- CSV export functionality
+
+## Fault-Tolerant Design
+
+The system supports automatic fallback mode.
+
+Primary Flow:
 
 ```text
-[ Solana Mainnet WebSocket ]
-       │
-       ▼ logsSubscribe
-[ Rust Decoder Engine ]
-  - Fetches raw transactions
-  - Decodes instructions
-  - Serves Axum API (:8002)
-       │
-       ▼ GET /api/events
-[ Next.js Dashboard ]
-  - Polls Axum API
-  - Renders UI
+Rust Decoder Engine
+        ↓
+Axum API
+        ↓
+Dashboard
 ```
 
-For local development and Vercel, configure your `.env`:
+Fallback Flow:
+
+```text
+Helius REST API
+        ↓
+Dashboard
+```
+
+If the Rust backend becomes unavailable, the dashboard automatically switches to Helius and continues functioning without interruption.
+
+## Why This Project Matters
+
+Most blockchain dashboards rely entirely on periodic RPC polling.
+
+This project introduces a dedicated Rust event-processing layer that:
+
+- Streams blockchain activity in near real time
+- Performs protocol-aware transaction decoding
+- Separates ingestion, processing, and visualization
+- Provides a scalable architecture for future protocol integrations
+
+The result is a production-style pipeline that demonstrates backend systems engineering, blockchain data processing, and modern frontend visualization in a single project.
+
+## Tech Stack
+
+### Backend
+
+- Rust
+- Tokio
+- Axum
+- Solana SDK
+- WebSocket Streaming
+- Systemd Deployment
+
+### Frontend
+
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+
+### Infrastructure
+
+- DigitalOcean
+- Vercel
+- Helius RPC & WebSocket APIs
+
+## Running Locally
+
+Backend:
 
 ```bash
-# Provide a free Helius API key for the fallback
-HELIUS_RPC_URL=https://mainnet.helius-rpc.com/?api-key=your-api-key
-
-# Point the dashboard to your Rust Engine
-DECODER_API_URL=http://your-droplet-ip:8002/api/events
+cargo run --release --example serve_api -- --ws --bind-http 0.0.0.0:8002
 ```
 
-### Run the Dashboard
+Frontend:
 
 ```bash
 cd web
@@ -82,57 +206,10 @@ bun install
 bun run dev
 ```
 
-Open `http://127.0.0.1:3000`
+Environment Variables:
 
-## Deploy On Vercel
+```env
+HELIUS_RPC_URL=https://mainnet.helius-rpc.com/?api-key=YOUR_API_KEY
 
-Use these Vercel settings:
-
-- Root Directory: `web`
-- Framework Preset: Next.js
-- Install Command: `bun install`
-- Build Command: `bun run build`
-- Output Directory: leave default
-
-## CLI Usage
-
-The command-line app is useful for terminal usage, logging, and piping decoded events into another tool.
-
-```bash
-cargo run --example serve_api -- --ws --bind-http 0.0.0.0:8002
+DECODER_API_URL=http://localhost:8002/api/events
 ```
-
-## Installation
-
-Install Rust from [rustup.rs](https://rustup.rs), then clone the repository and build:
-
-```bash
-cargo build --release
-```
-
-## Output Shape
-
-Decoded events include:
-
-```json
-{
-  "dex": "PumpFun",
-  "kind": "Buy",
-  "signature": "transaction-signature",
-  "slot": 287000001,
-  "mint": "token-mint-address",
-  "input_mint": "optional-input-mint",
-  "output_mint": "optional-output-mint",
-  "input_amount": 1000000,
-  "output_amount": 900000,
-  "slippage_bps": 50,
-  "authority": "authority-address"
-}
-```
-
-## Notes And Limitations
-
-- This is a decoder/demo project, not a trading bot and not a wallet app.
-- It does not sign transactions or require private keys.
-- The Rust engine should be deployed outside Vercel as a long-running worker.
-- Program decoders are examples and can be extended for more protocols or instruction variants.
