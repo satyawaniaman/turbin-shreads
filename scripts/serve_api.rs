@@ -18,6 +18,10 @@ struct Args {
     bind_http: String,
     #[arg(long)]
     mock: bool,
+    #[arg(long)]
+    ws: bool,
+    #[arg(long, env = "HELIUS_RPC_URL")]
+    rpc_url: Option<String>,
 }
 
 #[derive(serde::Serialize, Clone)]
@@ -78,6 +82,34 @@ async fn main() -> anyhow::Result<()> {
                 println!("[MOCK slot {}] PumpFun Buy generated", slot);
             }
         });
+    } else if args.ws {
+        tracing::info!("Starting in WEBSOCKET mode...");
+        let rpc_url = args.rpc_url.expect("HELIUS_RPC_URL must be set when using --ws");
+        tokio::spawn(async move {
+            let res = shredstream_decoder_example::ws_stream::run_ws_stream(&rpc_url, move |inst| {
+                let event = ApiEvent {
+                    instruction: inst.clone(),
+                    timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64,
+                    fec_status: "complete".to_string(),
+                    decode_latency_ms: 45, // WS has higher latency than UDP
+                };
+                
+                let cache_clone = pipeline_cache.clone();
+                tokio::spawn(async move {
+                    let mut guard = cache_clone.write().await;
+                    guard.push_front(event);
+                    if guard.len() > 100 {
+                        guard.pop_back();
+                    }
+                });
+                
+                println!("[WS slot {}] {} {:?} | mint={}", inst.slot, inst.dex, inst.kind, inst.mint);
+            }).await;
+            
+            if let Err(e) = res {
+                tracing::error!("WebSocket stream error: {}", e);
+            }
+        });
     } else {
         tokio::spawn(async move {
             let mut pipeline = ShredPipeline::new(bind_udp.clone());
@@ -98,7 +130,7 @@ async fn main() -> anyhow::Result<()> {
                     }
                 });
                 
-                println!("[slot {}] {} {:?} | mint={}", inst.slot, inst.dex, inst.kind, inst.mint);
+                println!("[UDP slot {}] {} {:?} | mint={}", inst.slot, inst.dex, inst.kind, inst.mint);
             }));
 
             tracing::info!(bind = %bind_udp, "Starting ShredStream pipeline...");
