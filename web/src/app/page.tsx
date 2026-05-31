@@ -39,9 +39,7 @@ export default function Home() {
           {/* Metrics */}
           <MetricsBar
             totalEvents={dashboard.totalEvents}
-            eventsPerSecond={dashboard.eventsPerSecond}
             latestSlot={dashboard.latestSlot}
-            fecRecovered={dashboard.fecRecovered}
             avgLatency={dashboard.avgLatency}
           />
 

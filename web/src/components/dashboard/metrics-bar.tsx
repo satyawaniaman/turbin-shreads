@@ -47,13 +47,11 @@ function MetricCard({ label, value, icon, accentColor, glowColor }: MetricCardPr
 
 export function MetricsBar({
   totalEvents,
-  eventsPerSecond,
   latestSlot,
-  fecRecovered,
   avgLatency,
-}: MetricsBarProps) {
+}: Omit<MetricsBarProps, "eventsPerSecond" | "fecRecovered">) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       <MetricCard
         label="Total Events"
         value={formatNumber(totalEvents)}
@@ -62,25 +60,11 @@ export function MetricsBar({
         glowColor="rgba(0, 117, 255, 0.06)"
       />
       <MetricCard
-        label="Events/sec"
-        value={eventsPerSecond.toFixed(1)}
-        icon={<Gauge className="size-3.5" />}
-        accentColor="#11ff99"
-        glowColor="rgba(34, 255, 153, 0.06)"
-      />
-      <MetricCard
         label="Latest Slot"
         value={formatNumber(latestSlot)}
         icon={<Layers className="size-3.5" />}
         accentColor="#ff801f"
         glowColor="rgba(255, 89, 0, 0.06)"
-      />
-      <MetricCard
-        label="FEC Recovered"
-        value={formatNumber(fecRecovered)}
-        icon={<Shield className="size-3.5" />}
-        accentColor="#ffc53d"
-        glowColor="rgba(255, 197, 61, 0.06)"
       />
       <MetricCard
         label="Avg Latency"

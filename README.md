@@ -32,7 +32,7 @@ The frontend dashboard lives in `web/`. It shows decoded events in a polished, d
 
 ### Dashboard Features
 
-- **Metric Cards** — Total events, events/sec, latest slot, average decode latency
+- **Metric Cards** — Total events, latest slot, average decode latency
 - **Protocol Breakdown** — Visual breakdown of events by protocol (Pump.fun, Jupiter, Raydium AMM/CPMM, SPL Token) with clickable filters
 - **Events Table** — Sortable table showing decoded events with protocol badges, monospace addresses, copy buttons, and Solana Explorer links
 - **Event Inspector** — Click any row to open a detailed side panel showing all decoded fields
