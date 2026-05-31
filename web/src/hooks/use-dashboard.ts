@@ -21,6 +21,7 @@ export interface DashboardState {
   streamSpeed: number;
   error: string | null;
   lastUpdated: number | null;
+  source: string;
   perPage: number;
   currentPage: number;
   totalPages: number;
@@ -57,6 +58,7 @@ export function useDashboard(): DashboardState {
   const [eventsPerSecond, setEventsPerSecond] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [source, setSource] = useState<string>("");
   const [perPage, setPerPage] = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -136,6 +138,7 @@ export function useDashboard(): DashboardState {
 
     const data = payload as LiveEventsResponse;
     setLastUpdated(data.fetchedAt);
+    setSource(data.source);
     setError(null);
     setEvents((prev) => {
       const merged = new Map(prev.map((event) => [event.signature, event]));
@@ -284,6 +287,7 @@ export function useDashboard(): DashboardState {
     streamSpeed,
     error,
     lastUpdated,
+    source,
     perPage,
     currentPage,
     totalPages,

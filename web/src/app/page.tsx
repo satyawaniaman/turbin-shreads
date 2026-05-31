@@ -31,7 +31,7 @@ export default function Home() {
 
           {dashboard.lastUpdated && (
             <div className="text-xs text-mute-text">
-              Source: Helius mainnet RPC · Last updated{" "}
+              Source: {dashboard.source === "helius-rpc" ? "Helius Mainnet REST" : "Rust WebSocket Engine"} · Last updated{" "}
               {new Date(dashboard.lastUpdated).toLocaleTimeString()}
             </div>
           )}
