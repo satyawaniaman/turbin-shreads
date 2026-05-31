@@ -211,6 +211,41 @@ async function fetchProtocolEvents(protocol: Protocol): Promise<DecodedEvent[]> 
 
 export async function GET() {
   try {
+    const decoderUrl = process.env.DECODER_API_URL;
+    if (decoderUrl) {
+      // Fetch directly from our custom Rust decoder backend
+      const res = await fetch(decoderUrl, { cache: "no-store" });
+      if (!res.ok) throw new Error(`Decoder API error: ${res.statusText}`);
+      
+      const data = await res.json();
+      
+      // Map the Rust ApiEvent struct to the Next.js DecodedEvent format
+      const events: DecodedEvent[] = data.events.map((e: any) => ({
+        id: e.signature,
+        slot: e.slot,
+        protocol: e.dex,
+        kind: e.kind,
+        signature: e.signature,
+        mint: e.mint,
+        inputMint: e.input_mint,
+        outputMint: e.output_mint,
+        inputAmount: e.input_amount,
+        outputAmount: e.output_amount,
+        slippageBps: e.slippage_bps,
+        authority: e.authority,
+        fecStatus: e.fec_status,
+        decodeLatencyMs: e.decode_latency_ms,
+        timestamp: e.timestamp,
+      }));
+
+      return NextResponse.json({
+        events,
+        fetchedAt: Date.now(),
+        source: "rust-decoder",
+      });
+    }
+
+    // Fallback to Helius RPC fetching if no decoder is configured
     const settled = await Promise.allSettled(
       (Object.keys(PROGRAMS) as Protocol[]).map(fetchProtocolEvents)
     );

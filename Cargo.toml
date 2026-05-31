@@ -19,6 +19,8 @@ tracing-subscriber = { version = "0.3.22", features = ["json", "env-filter"] }
 anyhow = "1.0"
 chrono = { version = "0.4.44", features = ["serde"] }
 strum = { version = "0.26", features = ["derive"] }
+axum = "0.8.9"
+tower-http = { version = "0.6.11", features = ["cors"] }
 
 [[example]]
 name = "listen_and_decode"
@@ -59,3 +61,7 @@ path = "scripts/token_transfers.rs"
 [[example]]
 name = "token_mints"
 path = "scripts/token_mints.rs"
+
+[[example]]
+name = "serve_api"
+path = "scripts/serve_api.rs"
