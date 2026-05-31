@@ -2,7 +2,6 @@ use crate::decoder::DecoderRegistry;
 use crate::types::DecodedInstruction;
 use futures_util::{SinkExt, StreamExt};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
-use solana_sdk::pubkey::Pubkey;
 use std::collections::HashSet;
 
 const PROGRAM_IDS: &[&str] = &[

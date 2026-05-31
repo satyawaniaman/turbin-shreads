@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, Layers, Clock, Shield, Gauge } from "lucide-react";
+import { Activity, Layers, Clock } from "lucide-react";
 import { formatNumber } from "@/lib/live-events";
 
 interface MetricsBarProps {

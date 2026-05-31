@@ -219,8 +219,25 @@ export async function GET() {
       
       const data = await res.json();
       
+      interface RustApiEvent {
+        signature: string;
+        slot: number;
+        dex: Protocol;
+        kind: InstructionKind;
+        mint: string;
+        input_mint?: string;
+        output_mint?: string;
+        input_amount?: number;
+        output_amount?: number;
+        slippage_bps?: number;
+        authority: string;
+        fec_status: string;
+        decode_latency_ms: number;
+        timestamp: number;
+      }
+
       // Map the Rust ApiEvent struct to the Next.js DecodedEvent format
-      const events: DecodedEvent[] = data.events.map((e: any) => ({
+      const events: DecodedEvent[] = data.events.map((e: RustApiEvent) => ({
         id: e.signature,
         slot: e.slot,
         protocol: e.dex,
