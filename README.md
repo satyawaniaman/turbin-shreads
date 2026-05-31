@@ -1,5 +1,13 @@
 # Turbine Real-Time Solana Decoder
 
+## Live Link
+
+https://turbin-shreads.vercel.app/
+
+## Demo Video
+
+![Dashboard Demo](./public/demo.gif)
+
 A high-performance Rust-powered real-time Solana analytics platform that streams, decodes, and visualizes DeFi activity from Pump.fun, Jupiter, Raydium, and SPL Token programs.
 
 ## Architecture Overview
